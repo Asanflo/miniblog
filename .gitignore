@@ -1,0 +1,7 @@
+#Fichier inutiles
+__pycache__
+*.pyc
+
+#base de donnees
+db.sqlite3
+
