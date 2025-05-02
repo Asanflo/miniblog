@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>liste articles</title>
+</head>
+<body>
+    <h1>Liste des articles</h1>
+    {% for article in articles %}
+        <h2>{{ article.title }}</h2>
+        <p>{{ article.content }}</p>
+        <small>{{ article.likes }}</small>
+        <small>{{ article.created_at }}</small>
+    {% endfor %}
+</body>
+</html>
