@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from rest_framework.decorators import api_view
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework.status import HTTP_201_CREATED, HTTP_400_BAD_REQUEST
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework import permissions
 
@@ -26,29 +26,40 @@ def listeArticles(request):
     return render(request, "listArticles.html", {"articles": articles, "form": form})
 
 
-@api_view(['GET'])
-def listapiview(request):
-    if request.method == 'GET':
-        articles = Articles.objects.all()
-        serializer = ArticlesSerializer(articles, many=True).data
-    return Response(serializer)
-
-
-@api_view(['GET'])
-def listdetailapi(request, pk):
-    article = get_object_or_404(Articles, pk=pk)
-    serializer = ArticlesSerializer(article, many=False).data
-    return Response(serializer)
-
-
 class ArticlesAPI(APIView):
 
-    # permission_classes = [DjangoModelPermissions, AllowAny]
+    def get_permissions(self):
+        if self.request.method == "POST" or self.request.method == "PUT":
+            return [IsAuthenticated(), permissions.IsAdminUser()]
+        elif self.request.method == "DELETE":
+            return [permissions.IsAdminUser()]
+        else:
+            return [AllowAny()]
     def post(self, request):
         serializer = ArticlesSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=HTTP_201_CREATED)
-        return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, pk=None):
+        if pk is None:
+            articles = Articles.objects.all()
+            serializer = ArticlesSerializer(articles, many=True)
+            return Response(serializer.data)
+        else:
+            article = get_object_or_404(Articles, pk=pk)
+            serializer = ArticlesSerializer(article, many=False)
+            return Response(serializer.data)
 
+    def put(self, request, pk):
+        article = get_object_or_404(Articles, pk=pk)
+        serializer = ArticlesSerializer(article, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def delete(self, request, pk):
+        article = get_object_or_404(Articles, pk=pk)
+        article.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

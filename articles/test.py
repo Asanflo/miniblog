@@ -1,0 +1,5 @@
+from rest_framework_simplejwt.tokens import AccessToken
+
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ2ODYxOTIxLCJpYXQiOjE3NDY4NjAxMjEsImp0aSI6Ijc2MzlmZmRiZGY2ODQ2MDlhYWUzZTNlM2ZkYWI4ZTI4IiwidXNlcl9pZCI6MX0._JuLNuxOSgPJQ9sxWnycPeXKs7stt4fvZWRt3rd8vXc"
+decoded = AccessToken(token)  # cela va lever une exception si invalide
+print(decoded.payload)
