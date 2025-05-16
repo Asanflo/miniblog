@@ -5,3 +5,6 @@ __pycache__
 #base de donnees
 db.sqlite3
 
+#Dossier a ignorer
+miniblog/
+Test/
