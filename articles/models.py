@@ -6,14 +6,6 @@ from django.db import models
 from django.template.defaultfilters import slugify
 
 
-# Create your models here.
-class Userblog(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    bio = models.TextField(blank=True, null=True)
-    def __str__(self):
-        return f'{self.user.first_name} {self.user.last_name}'
-
-
 def userAvatarContent(instance, filename):
     extension = filename.split('.')[-1]
     username = slugify(instance.user.username)
@@ -21,10 +13,20 @@ def userAvatarContent(instance, filename):
     filename = f"{username}_{timestamp}.{extension}"
     return os.path.join('avatars',filename)
 
+# Create your models here.
+class Userblog(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    bio = models.TextField(blank=True, null=True)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    def __str__(self):
+        return self.user.get_full_name()
+
+
+
+
 class Category(models.Model):
     nom = models.CharField(blank=False)
-    description =models.TextField(blank=True, null=True)
-    avatar = models.ImageField(upload_to=userAvatarContent, null=True, blank=True)
+    description = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.nom

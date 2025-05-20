@@ -2,14 +2,14 @@ from django.shortcuts import render, get_object_or_404, redirect
 from rest_framework.decorators import api_view
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework import permissions
 
 #chargement des models
-from .models import Articles
+from .models import Articles, Userblog, Category, CommentUser
 from .forms import ArticlesForm
-from .serializers import ArticlesSerializer
+from .serializers import ArticlesSerializer, UserblogSerializer, CategorySerializer, CommentSerializer
 
 
 # Create your views here.
@@ -63,3 +63,10 @@ class ArticlesAPI(APIView):
         article = get_object_or_404(Articles, pk=pk)
         article.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class UserViews(viewsets.ModelViewSet):
+    queryset = Userblog.objects.all()
+    serializer_class = UserblogSerializer
+
+    def perform_create(self, serializer):
+        serializer.save()
