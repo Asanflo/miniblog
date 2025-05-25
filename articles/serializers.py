@@ -19,6 +19,37 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password":"Les deux mots de passe ne correspondent pas"})
         return attrs
 
+    def validate(self, attrs):
+        password = attrs.get('password')
+        confirme_password = attrs.get('confirmePassword')
+
+        # Vérifier seulement si un mot de passe est fourni
+        if password or confirme_password:
+            if password != confirme_password:
+                raise serializers.ValidationError({
+                    "password": "Les deux mots de passe ne correspondent pas"
+                })
+
+        return attrs
+
+    def update(self, instance, validated_data):
+        # Supprimer confirmePassword des données validées
+        validated_data.pop('confirmePassword', None)
+
+        # Mettre à jour les champs normaux
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+        instance.username = validated_data.get('username', instance.username)
+        instance.email = validated_data.get('email', instance.email)
+
+        # Gestion spéciale du mot de passe
+        password = validated_data.get('password')
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+        return instance
+
 class UserblogSerializer(serializers.ModelSerializer):
     user = UserSerializer()
     avatar = serializers.ImageField(required=False)
@@ -34,40 +65,76 @@ class UserblogSerializer(serializers.ModelSerializer):
         return Userblog.objects.create(user=user_save, **validated_data)
 
     def update(self, instance, validated_data):
-        # Récupérez le nouveau username
-        new_username = validated_data.get('username', instance.username)
+        # Extract user data if present
+        user_data = validated_data.pop('user', None)
 
-        # Vérifiez si l'ID de l'instance correspond à celui dans validated_data
-        if instance.pk == validated_data.get('pk', instance.pk):
-            if instance.username != new_username:
-                # Vérifiez si le nouveau username existe déjà
-                if User.objects.filter(username=new_username).exists():
-                    raise serializers.ValidationError(
-                        {"username": "Un utilisateur avec ce nom d'utilisateur existe déjà."})
-                # Mettez à jour le username
-                instance.username = new_username
-            else:
-                # Réinitialisez les autres données selon le formulaire
-                instance.surname = validated_data.get('surname', instance.surname)
-                instance.email = validated_data.get('email', instance.email)
+        # Update Userblog fields (bio, avatar)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
-                # Vérifiez les mots de passe
-                password = validated_data.get('password')
-                confirme_password = validated_data.get('confirmePassword')
+        # Update User fields if user_data is provided
+        if user_data:
+            user_instance = instance.user
 
-                if password and password != confirme_password:
-                    raise serializers.ValidationError({"password": "Les deux mots de passe ne correspondent pas."})
+            # Handle username uniqueness check
+            new_username = user_data.get('username')
+            if new_username and new_username != user_instance.username:
+                if User.objects.filter(username=new_username).exclude(pk=user_instance.pk).exists():
+                    raise serializers.ValidationError({
+                        "user": {"username": "Un utilisateur avec ce nom d'utilisateur existe déjà."}
+                    })
 
-                if password:
-                    instance.set_password(password)
+            # Handle email uniqueness check (if needed)
+            new_email = user_data.get('email')
+            if new_email and new_email != user_instance.email:
+                if User.objects.filter(email=new_email).exclude(pk=user_instance.pk).exists():
+                    raise serializers.ValidationError({
+                        "user": {"email": "Un utilisateur avec cet email existe déjà."}
+                    })
 
-                # Vérifiez si un avatar a été fourni
-                avatar = validated_data.get('avatar')
-                if avatar is None and instance.avatar is None:
-                    raise serializers.ValidationError({"avatar": "Ce champ ne peut pas être nul."})
+            # Update basic user fields
+            user_fields = ['first_name', 'last_name', 'username', 'email']
+            for field in user_fields:
+                # Map the serializer field names to model field names
+                if field == 'first_name' and 'name' in user_data:
+                    setattr(user_instance, field, user_data['name'])
+                elif field == 'last_name' and 'surname' in user_data:
+                    setattr(user_instance, field, user_data['surname'])
+                elif field in user_data:
+                    setattr(user_instance, field, user_data[field])
 
-        instance.save()  # Enregistrez les modifications
+            # Handle password update
+            password = user_data.get('password')
+            if password:
+                user_instance.set_password(password)
+
+            user_instance.save()
+
+        instance.save()
         return instance
+
+    def validate(self, attrs):
+        # Check password confirmation if both passwords are provided
+        user_data = attrs.get('user', {})
+        password = user_data.get('password')
+        confirm_password = user_data.get('confirmePassword')
+
+        if password and confirm_password:
+            if password != confirm_password:
+                raise serializers.ValidationError({
+                    "user": {"password": "Les deux mots de passe ne correspondent pas."}
+                })
+        elif password and not confirm_password:
+            raise serializers.ValidationError({
+                "user": {"confirmePassword": "Veuillez confirmer le mot de passe."}
+            })
+        elif confirm_password and not password:
+            raise serializers.ValidationError({
+                "user": {"password": "Le mot de passe est requis."}
+            })
+
+        return attrs
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:

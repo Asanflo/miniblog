@@ -70,3 +70,19 @@ class UserViews(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer_class = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer_class.is_valid(raise_exception=True)
+        self.perform_update(serializer_class)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer_class.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
