@@ -1,9 +1,9 @@
 from django.urls import path, include
-from .views import listeArticles, ArticlesAPI, UserViews
+from .views import listeArticles, ArticlesAPI, UserBlogViewSet
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
-router.register(r'user', UserViews)
+router.register(r'userblogs', UserBlogViewSet)
 
 urlpatterns = [
     path('listarticles/', listeArticles, name="listarticles"),

@@ -64,25 +64,26 @@ class ArticlesAPI(APIView):
         article.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-class UserViews(viewsets.ModelViewSet):
+class UserBlogViewSet(viewsets.ModelViewSet):
     queryset = Userblog.objects.all()
     serializer_class = UserblogSerializer
 
     def perform_create(self, serializer):
         serializer.save()
 
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        print("l'ID est:", instance.id)
-        serializer_class = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer_class.is_valid(raise_exception=True)
-        self.perform_update(serializer_class)
+    """def create(self, request, *args, **kwargs):
+        # Vérifier si on reçoit une liste (bulk create)
+        if isinstance(request.data, list):
+            serializer = self.get_serializer(data=request.data, many=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_bulk_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # Comportement normal (création simple)
+            return super().create(request, *args, **kwargs)
 
-        if getattr(instance, '_prefetched_objects_cache', None):
-            instance._prefetched_objects_cache = {}
-
-        return Response(serializer_class.data)
+    def perform_bulk_create(self, serializer):
+        serializer.save()"""
 
     def partial_update(self, request, *args, **kwargs):
         kwargs['partial'] = True

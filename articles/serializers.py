@@ -19,20 +19,22 @@ class UserSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         password = attrs.get('password')
         confirme_password = attrs.get('confirmePassword')
-        username = attrs.get('username')
-        # Vérification du mot de passe
+        username = attrs.get('username', None)
+
+        # Récupérer le username si non fourni dans les données mais présent dans l'instance
+        if username is None and self.instance:
+            username = self.instance.username
+
         if password or confirme_password:
             if password != confirme_password:
                 raise serializers.ValidationError({
                     "password": "Les deux mots de passe ne correspondent pas"
                 })
 
-        # Vérification de l’unicité du username
         if username:
             queryset = User.objects.filter(username=username)
             if self.instance:
-                print("''''''L'ID est2:''''''''", self.instance.id)
-                queryset = queryset.exclude(id=self.instance.id)
+                queryset = queryset.exclude(pk=self.instance.pk)
             if queryset.exists():
                 raise serializers.ValidationError({"username": "Ce nom d'utilisateur est déjà utilisé"})
 
@@ -40,7 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data.pop('confirmePassword', None)
-
+        print("L'instance est: ", self.instance)
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)
         instance.email = validated_data.get('email', instance.email)
@@ -53,17 +55,18 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 class UserblogSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
     user = UserSerializer()
     avatar = serializers.ImageField(required=False)
     class Meta:
         model = Userblog
-        fields = ['user', 'bio', 'avatar']
+        fields = ['id','user', 'bio', 'avatar']
 
     #Fonction permettant d'instancier un nouvel utilisateur du blog
     def create(self, validated_data):
         user_content = validated_data.pop('user') #Grace a la methode validated_data, on verifie si le champ user est valide
         user_content.pop('confirmePassword', None)
-        user_save = User.objects.create(**user_content) #creation de l'objet user en passant en parametre tout les arguments de user_content
+        user_save = User.objects.create_user(**user_content) #creation de l'objet user en passant en parametre tout les arguments de user_content
         return Userblog.objects.create(user=user_save, **validated_data)
 
 
